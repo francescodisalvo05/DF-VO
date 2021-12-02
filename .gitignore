@@ -7,6 +7,10 @@
 
 result/
 
+.idea/
+
+.DS_Store
+
 # temporary files
 tmp/
 options/adelaide/
