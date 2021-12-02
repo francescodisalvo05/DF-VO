@@ -68,23 +68,21 @@ class DevonIsland(Dataset):
         """
         # Reference image size
         # Camera one 
-        if self.cfg.dataset == "devon_island":
-            self.height = 1280
-            self.width = 960
+
+        self.height = 960
+        self.width = 1280
+
+
+        K = [1280.0-635.139038086, 960.0-463.537109375, 968.999694824, 968.999694824]
+
+        '''
+        if self.cfg.image.width:
+          K[0] *= (self.cfg.image.width / self.width)
         
-        else:
-            assert False, "Wrong dataset is given"
-
-        img_seq_dir = os.path.join(
-                            self.cfg.directory.img_seq_dir,
-                            self.cfg.seq
-                            )
-        K = np.loadtxt(os.path.join(img_seq_dir, "cam.txt"))
-        K[0] *= (self.cfg.image.width / self.width)
-        K[1] *= (self.cfg.image.height / self.height)
-
-        intrinsics_param = [[968.999694824, 0, 463.537109375], [0, 968.999694824, 635.139038086], [0, 0, 1]]
-        return intrinsics_param
+        if self.cfg.image.height
+          K[1] *= (self.cfg.image.height / self.height)
+        '''
+        return K
     
     def get_data_dir(self):
         """Get data directory
