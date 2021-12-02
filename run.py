@@ -7,6 +7,8 @@
 @LastEditors: Huangying Zhan
 @Description: This API runs DF-VO.
 '''
+import sys
+sys.path.append('../')
 
 import argparse
 import numpy as np
@@ -14,7 +16,7 @@ import os
 import random
 import torch
 
-from libs.dfvo import DFVO
+from libs.dfvo_new import DFVO
 from libs.general.utils import mkdir_if_not_exists
 from libs.general.configuration import ConfigLoader
 
@@ -34,7 +36,7 @@ def read_cfgs():
     ''' Argument Parsing '''
     parser = argparse.ArgumentParser(description='VO system')
     parser.add_argument("-s", "--seq", 
-                        default=None, help="sequence")
+                        default=22, help="sequence")
     parser.add_argument("-d", "--default_configuration", type=str, 
                         default="options/kitti/kitti_default_configuration.yml",
                         help="default configuration files")
@@ -49,8 +51,9 @@ def read_cfgs():
     # read default and custom config, merge cfgs
     config_files = [args.default_configuration, args.configuration]
     cfg = config_loader.merge_cfg(config_files)
+
     if args.seq is not None:
-        if cfg.dataset == "kitti_odom":
+        if cfg.dataset == "devon_island":
             cfg.seq = "{:02}".format(int(args.seq))
         else:
             cfg.seq = args.seq
