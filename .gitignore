@@ -6,7 +6,6 @@
 .vscode
 
 result/
-model_zoo/
 
 # temporary files
 tmp/
