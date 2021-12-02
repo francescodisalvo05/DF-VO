@@ -113,10 +113,11 @@ class DevonIsland(Dataset):
         Returns:
             img (array, [CxHxW]): image data
         """
-        img_path = os.path.join(self.data_dir['img'], 
-                            "{:06d}.{}".format(timestamp, self.cfg.image.ext)
+        img_path = os.path.join(self.data_dir['img'],
+                            "{:06d}.{}".format(timestamp + 33864, self.cfg.image.ext)
                             )
         img = read_image(img_path, self.cfg.image.height, self.cfg.image.width)
+
         return img
     
     ''' 
