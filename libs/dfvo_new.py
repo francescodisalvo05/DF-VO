@@ -20,7 +20,7 @@ from tqdm import tqdm
 
 from libs.geometry.camera_modules import SE3
 import libs.datasets as Dataset
-from libs.deep_models.deep_models import DeepModel
+# from libs.deep_models.deep_models import DeepModel
 from libs.general.frame_drawer import FrameDrawer
 from libs.general.timer import Timer
 from libs.matching.keypoint_sampler import KeypointSampler
@@ -73,12 +73,6 @@ class DFVO():
 
         # initialize keypoint sampler
         self.kp_sampler = KeypointSampler(self.cfg)
-        
-        # Deep networks
-        self.deep_models = DeepModel(self.cfg)
-        self.deep_models.initialize_models()
-        if self.cfg.online_finetune.enable:
-            self.deep_models.setup_train()
         
         # Depth consistency
         if self.cfg.kp_selection.depth_consistency.enable:
@@ -301,54 +295,6 @@ class DFVO():
         # Reading/Predicting depth
         if self.dataset.data_dir['depth_src'] is not None:
             self.cur_data['raw_depth'] = self.dataset.get_depth(self.cur_data['timestamp'])
-    
-    def deep_model_inference(self):
-        """deep model prediction
-        """
-        if self.tracking_method in ['hybrid', 'PnP']:
-            # Single-view Depth prediction
-            if self.dataset.data_dir['depth_src'] is None:
-                self.timers.start('depth_cnn', 'deep inference')
-                if self.tracking_stage > 0 and \
-                    self.cfg.online_finetune.enable and self.cfg.online_finetune.depth.enable:
-                        img_list = [self.cur_data['img'], self.ref_data['img']]
-                else:
-                    img_list = [self.cur_data['img']]
-
-                self.cur_data['raw_depth'] = \
-                    self.deep_models.forward_depth(imgs=img_list)
-                self.cur_data['raw_depth'] = cv2.resize(self.cur_data['raw_depth'],
-                                                    (self.cfg.image.width, self.cfg.image.height),
-                                                    interpolation=cv2.INTER_NEAREST
-                                                    )
-                self.timers.end('depth_cnn')
-            self.cur_data['depth'] = preprocess_depth(self.cur_data['raw_depth'], self.cfg.crop.depth_crop, [self.cfg.depth.min_depth, self.cfg.depth.max_depth])
-
-            # Two-view flow
-            if self.tracking_stage >= 1:
-                self.timers.start('flow_cnn', 'deep inference')
-                flows = self.deep_models.forward_flow(
-                                        self.cur_data,
-                                        self.ref_data,
-                                        forward_backward=self.cfg.deep_flow.forward_backward)
-                
-                # Store flow
-                self.ref_data['flow'] = flows[(self.ref_data['id'], self.cur_data['id'])].copy()
-                if self.cfg.deep_flow.forward_backward:
-                    self.cur_data['flow'] = flows[(self.cur_data['id'], self.ref_data['id'])].copy()
-                    self.ref_data['flow_diff'] = flows[(self.ref_data['id'], self.cur_data['id'], "diff")].copy()
-                
-                self.timers.end('flow_cnn')
-            
-        # Relative camera pose
-        if self.tracking_stage >= 1 and self.cfg.deep_pose.enable:
-            self.timers.start('pose_cnn', 'deep inference')
-            # Deep pose prediction
-            pose = self.deep_models.forward_pose(
-                        [self.ref_data['img'], self.cur_data['img']] 
-                        )
-            self.ref_data['deep_pose'] = pose # from cur->ref
-            self.timers.end('pose_cnn')
 
     def main(self):
         """Main program
@@ -375,10 +321,7 @@ class DFVO():
             self.load_raw_data()
             self.timers.end('data_loading')
 
-            # Deep model inferences
-            self.timers.start('deep_inference')
-            self.deep_model_inference()
-            self.timers.end('deep_inference')
+
 
             """ Visual odometry """
             self.timers.start('tracking')
@@ -424,8 +367,8 @@ class DFVO():
         self.dataset.save_result_traj(traj_txt, self.global_poses)
 
         # save finetuned model
-        if self.cfg.online_finetune.enable and self.cfg.online_finetune.save_model:
-            self.deep_models.save_model()
+        # if self.cfg.online_finetune.enable and self.cfg.online_finetune.save_model:
+        #    self.deep_models.save_model()
 
         # Output experiement information
         self.timers.time_analysis()
