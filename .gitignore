@@ -6,7 +6,6 @@
 .vscode
 
 result/
-dataset/
 model_zoo/
 
 # temporary files
