@@ -36,7 +36,7 @@ def read_cfgs():
     ''' Argument Parsing '''
     parser = argparse.ArgumentParser(description='VO system')
     parser.add_argument("-s", "--seq", 
-                        default=22, help="sequence")
+                        default=14, help="sequence")
     parser.add_argument("-d", "--default_configuration", type=str, 
                         default="options/kitti/kitti_default_configuration.yml",
                         help="default configuration files")
