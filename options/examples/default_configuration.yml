@@ -8,11 +8,11 @@ dataset: devon_island                                       # dataset [kitti_odo
 image:
     height: 960                                           # image height
     width: 1280                                           # image width
-    ext: jpg                                              # image file extension for data loading
+    ext: ppm                                              # image file extension for data loading
 seq: "14"                                                 # sequence to run
 frame_step: 1                                             # frame step
 cam_mode: mono                                            # camera mode: [mono, stereo]
-
+seed: 42
 #-------------------------------------
 #- Directories
 #-------------------------------------
@@ -29,7 +29,7 @@ depth:                                                    # Depth configuration
     depth_src:                                            # depth source [None, gt]
     deep_depth:
         network: monodepth2
-        pretrained_model: model_zoo/depth/kitti_odom/stereo/  # directory stores depth.pth and encoder.pth 
+        pretrained_model: model_zoo/depth/  # directory stores depth.pth and encoder.pth
     max_depth: 50                                        # maximum depth 
     min_depth: 0                                          # minimum depth 
 
