@@ -16,7 +16,7 @@ import os
 import random
 import torch
 
-from libs.dfvo_new import DFVO
+from libs.dfvo import DFVO
 from libs.general.utils import mkdir_if_not_exists
 from libs.general.configuration import ConfigLoader
 
