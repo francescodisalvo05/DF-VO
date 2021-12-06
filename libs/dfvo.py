@@ -29,7 +29,6 @@ from libs.tracker import EssTracker, PnpTracker
 from libs.general.utils import *
 
 
-
 class DFVO():
     def __init__(self, cfg):
         """
@@ -298,26 +297,30 @@ class DFVO():
     def deep_model_inference(self):
         """deep model prediction
         """
+
         if self.tracking_method in ['hybrid', 'PnP']:
             # Single-view Depth prediction
             if self.dataset.data_dir['depth_src'] is None:
                 self.timers.start('depth_cnn', 'deep inference')
+
                 if self.tracking_stage > 0 and \
                     self.cfg.online_finetune.enable and self.cfg.online_finetune.depth.enable:
                         img_list = [self.cur_data['img'], self.ref_data['img']]
                 else:
                     img_list = [self.cur_data['img']]
 
+                # work on raw_depth
                 self.cur_data['raw_depth'] = \
                     self.deep_models.forward_depth(imgs=img_list)
+
+
                 self.cur_data['raw_depth'] = cv2.resize(self.cur_data['raw_depth'],
                                                     (self.cfg.image.width, self.cfg.image.height),
                                                     interpolation=cv2.INTER_NEAREST
                                                     )
                 self.timers.end('depth_cnn')
+                
             self.cur_data['depth'] = preprocess_depth(self.cur_data['raw_depth'], self.cfg.crop.depth_crop, [self.cfg.depth.min_depth, self.cfg.depth.max_depth])
-            print(self.curr_data['depth'])
-            print(self.curr_data['depth'])
 
             # Two-view flow
             if self.tracking_stage >= 1:
