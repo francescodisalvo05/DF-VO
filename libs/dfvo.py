@@ -316,6 +316,8 @@ class DFVO():
                                                     )
                 self.timers.end('depth_cnn')
             self.cur_data['depth'] = preprocess_depth(self.cur_data['raw_depth'], self.cfg.crop.depth_crop, [self.cfg.depth.min_depth, self.cfg.depth.max_depth])
+            print(self.curr_data['depth'])
+            print(self.curr_data['depth'])
 
             # Two-view flow
             if self.tracking_stage >= 1:
