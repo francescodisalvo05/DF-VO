@@ -14,13 +14,19 @@ import PIL.Image as pil
 import torch
 import torch.optim as optim
 from torchvision import transforms
+from io import BytesIO
 
 from .depth.monodepth2.monodepth2 import Monodepth2DepthNet
-from .flow.lite_flow_net.lite_flow import LiteFlow
-from .flow.hd3.hd3_flow import HD3Flow
+# from .flow.lite_flow_net.lite_flow import LiteFlow
+# from .flow.hd3.hd3_flow import HD3Flow
 from .pose.monodepth2.monodepth2 import Monodepth2PoseNet
 from libs.deep_models.depth.monodepth2.layers import FlowToPix, PixToFlow, SSIM, get_smooth_loss
 from libs.general.utils import mkdir_if_not_exists
+
+from libs.deep_models.flow.spynet.run import Network as SpyNet
+from libs.deep_models.flow.spynet.run import estimate # function
+from libs.deep_models.depth.adabins.infer import InferenceHelper
+
 
 class DeepModel():
     """DeepModel initializes different deep networks and provide forward interfaces.
@@ -35,11 +41,14 @@ class DeepModel():
         self.finetune_cfg = self.cfg.online_finetune
         self.device = torch.device('cuda')
 
+        self.depth_net = SpyNet()
+        self.flow_net = InferenceHelper(dataset='kitti')
+
     def initialize_models(self):
         """intialize multiple deep models
         """
-
-        ''' optical flow '''
+        """
+        #''' optical flow '''
         self.flow = self.initialize_deep_flow_model()
 
         ''' single-view depth '''
@@ -55,6 +64,8 @@ class DeepModel():
                 self.pose = self.initialize_deep_pose_model()
             else:
                 assert False, "No pretrained pose model"
+        """
+        pass
 
     def initialize_deep_flow_model(self):
         """Initialize optical flow network
@@ -62,6 +73,7 @@ class DeepModel():
         Returns:
             flow_net (nn.Module): optical flow network
         """
+        '''
         if self.cfg.deep_flow.network == 'liteflow':
             flow_net = LiteFlow(self.cfg.image.height, self.cfg.image.width)
             enable_finetune = self.finetune_cfg.enable and self.finetune_cfg.flow.enable
@@ -80,7 +92,8 @@ class DeepModel():
             assert False, "Invalid flow network [{}] is provided.".format(
                                 self.cfg.deep_flow.network
                                 )
-        return flow_net
+        '''
+        pass
 
     def initialize_deep_depth_model(self):
         """Initialize single-view depth model
@@ -88,6 +101,7 @@ class DeepModel():
         Returns:
             depth_net (nn.Module): single-view depth network
         """
+        '''
         if self.cfg.depth.deep_depth.network == 'monodepth2':
             depth_net = Monodepth2DepthNet(self.cfg.image.height, self.cfg.image.width)
             enable_finetune = self.finetune_cfg.enable and self.finetune_cfg.depth.enable
@@ -99,7 +113,8 @@ class DeepModel():
             assert False, "Invalid depth network [{}] is provided.".format(
                                 self.cfg.depth.deep_depth.network
                                 )
-        return depth_net
+        '''
+        return InferenceHelper
     
     def initialize_deep_pose_model(self):
         """Initialize two-view pose model
@@ -165,20 +180,47 @@ class DeepModel():
         # Forward pass
         flows = {}
 
+        '''
         # Flow inference
         batch_flows = self.flow.inference_flow(
                                 img1=ref_imgs,
                                 img2=cur_imgs,
                                 forward_backward=forward_backward,
                                 dataset=self.cfg.dataset)
-        
+        '''
         # Save flows at current view
         src_id = in_ref_data['id']
         tgt_id = in_cur_data['id']
-        flows[(src_id, tgt_id)] = batch_flows['forward'].detach().cpu().numpy()[0]
+
+        tenOne = torch.FloatTensor(np.ascontiguousarray(
+            np.array(ref_imgs)[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) * (
+                        1.0 / 255.0)))
+        tenTwo = torch.FloatTensor(np.ascontiguousarray(
+            np.array(pil.Image.open(cur_imgs))[:, :, ::-1].transpose(2, 0, 1).astype(np.float32) * (
+                        1.0 / 255.0)))
+
+        tenOutput = estimate(tenOne, tenTwo)
+
+        # objOutput = open(arguments_strOut, 'wb')
+
+        temp_stream = BytesIO()
+
+        # overwrite or append??
+        np.array([80, 73, 69, 72], np.uint8).tofile(temp_stream)
+        np.array([tenOutput.shape[2], tenOutput.shape[1]], np.int32).tofile(temp_stream)
+        np.array(tenOutput.numpy().transpose(1, 2, 0), np.float32).tofile(temp_stream)
+
+        flows[(src_id, tgt_id)] = temp_stream.close()
+
+        temp_stream.close()
+
+        # flows[(src_id, tgt_id)] = batch_flows['forward'].detach().cpu().numpy()[0]
+
+        '''
         if forward_backward:
             flows[(tgt_id, src_id)] = batch_flows['backward'].detach().cpu().numpy()[0]
             flows[(src_id, tgt_id, "diff")] = batch_flows['flow_diff'].detach().cpu().numpy()[0]
+        '''
         return flows
 
     def forward_depth(self, imgs):
@@ -191,19 +233,24 @@ class DeepModel():
             depth (array, [HxW]): depth map of imgs[0]
         """
         # Preprocess
-        img_tensor = []
+        depth_array = []
         for img in imgs:
-            input_image = pil.fromarray(img)
-            input_image = input_image.resize((self.depth.feed_width, self.depth.feed_height), pil.LANCZOS)
-            input_image = transforms.ToTensor()(input_image).unsqueeze(0)
-            img_tensor.append(input_image)
-        img_tensor = torch.cat(img_tensor, 0)
-        img_tensor = img_tensor.cuda()
+            input_image = pil.fromarray(img).resize((640,480))  # the depth model works only with this dimension
+            # input_image = input_image.resize((self.depth.feed_width, self.depth.feed_height), pil.LANCZOS)
+            # input_image = transforms.ToTensor()(input_image).unsqueeze(0)
+            _, predicted_depth = self.flow_net.predict_pil(input_image)
+            depth_array.append(input_image)
+
+        '''
+        # img_tensor = torch.cat(img_arrays, 0)
+        img_tensor = depth_array.cuda()
         
         # Inference
         pred_depth = self.depth.inference_depth(img_tensor)
         depth = pred_depth.detach().cpu().numpy()[0,0] 
-        return depth
+        '''
+        self.depth.inference_depth(img_tensor)
+        return depth_array
 
     def forward_pose(self, imgs):
         """Depth network forward interface, a forward inference.
