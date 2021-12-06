@@ -166,16 +166,18 @@ def estimate(tenOne, tenTwo):
 ##########################################################
 
 if __name__ == '__main__':
+
 	tenOne = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strOne))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 	tenTwo = torch.FloatTensor(numpy.ascontiguousarray(numpy.array(PIL.Image.open(arguments_strTwo))[:, :, ::-1].transpose(2, 0, 1).astype(numpy.float32) * (1.0 / 255.0)))
 
 	tenOutput = estimate(tenOne, tenTwo)
+	import io
 
-	objOutput = open(arguments_strOut, 'wb')
+	temp_stream = io.BytesIO()
 
-	numpy.array([ 80, 73, 69, 72 ], numpy.uint8).tofile(objOutput)
-	numpy.array([ tenOutput.shape[2], tenOutput.shape[1] ], numpy.int32).tofile(objOutput)
-	numpy.array(tenOutput.numpy().transpose(1, 2, 0), numpy.float32).tofile(objOutput)
+	numpy.array([ 80, 73, 69, 72 ], numpy.uint8).tofile(temp_stream)
+	numpy.array([ tenOutput.shape[2], tenOutput.shape[1] ], numpy.int32).tofile(temp_stream)
+	numpy.array(tenOutput.numpy().transpose(1, 2, 0), numpy.float32).tofile(temp_stream)
 
-	objOutput.close()
+	temp_stream.close()
 # end
