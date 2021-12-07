@@ -41,8 +41,8 @@ class DeepModel():
         self.finetune_cfg = self.cfg.online_finetune
         self.device = torch.device('cuda')
 
-        self.depth_net = SpyNet()
-        self.flow_net = InferenceHelper(dataset='kitti')
+        self.depth_net = InferenceHelper(dataset='kitti')
+        self.flow_net = SpyNet()
 
     def initialize_models(self):
         """intialize multiple deep models
@@ -238,7 +238,7 @@ class DeepModel():
             input_image = pil.fromarray(img).resize((640,480))  # the depth model works only with this dimension
             # input_image = input_image.resize((self.depth.feed_width, self.depth.feed_height), pil.LANCZOS)
             # input_image = transforms.ToTensor()(input_image).unsqueeze(0)
-            _, predicted_depth = self.flow_net.predict_pil(input_image)
+            _, predicted_depth = self.depth_net.predict_pil(input_image)
             depth_array.append(input_image)
 
         '''
@@ -249,7 +249,7 @@ class DeepModel():
         pred_depth = self.depth.inference_depth(img_tensor)
         depth = pred_depth.detach().cpu().numpy()[0,0] 
         '''
-        self.depth.inference_depth(img_tensor)
+
         return depth_array
 
     def forward_pose(self, imgs):
